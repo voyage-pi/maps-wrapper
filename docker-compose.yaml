@@ -1,0 +1,8 @@
+services:
+  template:
+    build: .
+    container_name: ${SERVICE_NAME}
+    environment:
+      - ENV_VAR=example
+    volumes:
+      - ./app:/app
