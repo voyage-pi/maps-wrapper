@@ -1,7 +1,7 @@
 services:
-  template:
+  maps-wrapper:
     build: .
-    container_name: ${SERVICE_NAME}
+    container_name: maps-wrapper
     environment:
       - ENV_VAR=example
     volumes:
