@@ -9,8 +9,7 @@ services:
       - REDIS_HOST=maps_wrapper_cache
       - REDIS_PORT=6379
     volumes:
-      - ./app:/app
-      # - ./app:/app:Z
+      - ./app:/app:Z
     depends_on:
       - maps_wrapper_cache
 
