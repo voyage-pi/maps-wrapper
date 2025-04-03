@@ -2,6 +2,8 @@ services:
   maps-wrapper:
     build: .
     container_name: maps-wrapper
+    env_file:
+      - .env
     environment:
       - REDIS_HOST=maps_wrapper_cache
       - REDIS_PORT=6379
