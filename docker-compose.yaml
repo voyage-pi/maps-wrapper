@@ -2,15 +2,9 @@ services:
   maps-wrapper:
     build: .
     container_name: maps-wrapper
-    env_file:
-      - .env
     environment:
-      - ENV_VAR=example
       - REDIS_HOST=maps_wrapper_cache
       - REDIS_PORT=6379
-    volumes:
-      - ./app:/app
-      # - ./app:/app:Z
     depends_on:
       - maps_wrapper_cache
 

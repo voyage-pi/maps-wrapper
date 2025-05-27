@@ -4,7 +4,7 @@ import json
 from app.config.settings import GOOGLE_MAPS_API_KEY
 from app.services.redis_client import redis_client
 
-from app.models.request_models import ComputeRoutesRequest
+from app.models.request_models import ComputeRoutesRequest, Location, PlaceID
 from app.models.response_models import RouteResult
 
 BASE_GOOGLE_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
@@ -26,7 +26,9 @@ async def fetch_routes(request: ComputeRoutesRequest):
     if not GOOGLE_MAPS_API_KEY:
         raise ValueError("Google Maps API Key is missing!")
 
-    cache_key = f"routes:{origin.latitude}:{origin.longitude}:{destination.latitude}:{destination.longitude}:{','.join([f'{lat},{lng}' for lat, lng in [(loc.latitude, loc.longitude) for loc in intermediate]])}:{traveling_mode}"
+    cache_key = f"routes:{get_key(origin)}:{get_key(destination)}"
+    cache_key += f":{','.join([get_key(loc) for loc in intermediate])}:{traveling_mode}"
+
     cached_data = await redis_client.get(cache_key)
     if cached_data:
         print("FROM CACHE")
@@ -39,13 +41,10 @@ async def fetch_routes(request: ComputeRoutesRequest):
     }
 
     payload = {
-        "origin": {"location": {"latLng": {"latitude": origin.latitude, "longitude": origin.longitude}}},
-        "destination": {"location": {"latLng": {"latitude": destination.latitude, "longitude": destination.longitude}}},
+        "origin": get_payload(origin),
+        "destination": get_payload(destination),
         "travelMode": traveling_mode,
-        "intermediates": [
-            {"location": {"latLng": {"latitude": loc.latitude, "longitude": loc.longitude}}}
-            for loc in intermediate
-        ],
+        "intermediates": [get_payload(loc) for loc in intermediate],
     }
 
     async with httpx.AsyncClient() as client:
@@ -63,7 +62,23 @@ async def fetch_routes(request: ComputeRoutesRequest):
 
     await redis_client.set(cache_key, json.dumps(normalized_data_dict), expire=3600)
 
-    return normalized_data 
+    return normalized_data
+
+def get_key(item):
+    """Helper function to get a string key for caching and the request"""
+    if isinstance(item, Location):
+        return f"{item.latitude},{item.longitude}"
+    elif isinstance(item, PlaceID):
+        return item.place_id
+    return ""
+
+def get_payload(item):
+    """Helper function to prepare payload data for either Location or PlaceID"""
+    if isinstance(item, Location):
+        return {"location": {"latLng": {"latitude": item.latitude, "longitude": item.longitude}}}
+    elif isinstance(item, PlaceID):
+        return {"placeId": item.place_id}
+    return {}
 
 def normalize_google_response(routes):
     """
